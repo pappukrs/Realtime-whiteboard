@@ -18,6 +18,7 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId }) => {
     const { emitDraw, emitCursorMove, emitRemoveElement, emitClearBoard, emitSyncBoard } = useSocket(roomId);
 
     const [editingText, setEditingText] = useState<{ id: string, text: string, x: number, y: number } | null>(null);
+    const stageRef = useRef<any>(null);
 
     const isDrawing = useRef(false);
     const isPanning = useRef(false);
@@ -78,13 +79,22 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId }) => {
             return;
         }
 
-        if (activeTool === 'select') return;
+        if (activeTool === 'select' || activeTool === 'eraser') return;
 
         if (activeTool === 'text') {
+            // Dismiss any current editing text first
+            if (editingText) {
+                handleTextSave();
+                return;
+            }
             const pos = getPointerPos(e);
             if (!pos) return;
             const id = uuidv4();
-            setEditingText({ id, text: '', x: pos.x, y: pos.y });
+            // We need to use setTimeout to ensure React state update happens
+            // after the current Konva event cycle completes
+            setTimeout(() => {
+                setEditingText({ id, text: '', x: pos.x, y: pos.y });
+            }, 0);
             return;
         }
 
@@ -329,9 +339,10 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId }) => {
     }, [history, historyStep]);
 
     return (
-        <>
+        <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
             <Toolbar onClear={handleClear} onUndo={handleUndo} onRedo={handleRedo} />
             <Stage
+                ref={stageRef}
                 width={window.innerWidth}
                 height={window.innerHeight}
                 onMouseDown={handleMouseDown}
@@ -371,38 +382,59 @@ export const Whiteboard: React.FC<WhiteboardProps> = ({ roomId }) => {
                 </Layer>
             </Stage>
             {editingText && (
-                <textarea
-                    value={editingText.text}
-                    onChange={(e) => setEditingText({ ...editingText, text: e.target.value })}
-                    onBlur={handleTextSave}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleTextSave();
-                        }
-                    }}
-                    autoFocus
+                <div
                     style={{
                         position: 'absolute',
-                        top: editingText.y * zoom + stagePos.y,
-                        left: editingText.x * zoom + stagePos.x,
-                        margin: 0,
-                        padding: '4px',
-                        border: '1px dashed #ccc',
-                        outline: 'none',
-                        background: 'transparent',
-                        resize: 'none',
-                        color: strokeColor,
-                        fontSize: `${20 * zoom}px`,
-                        fontFamily: 'sans-serif',
-                        lineHeight: 1,
-                        overflow: 'hidden',
-                        whiteSpace: 'pre',
-                        minWidth: '50px',
-                        minHeight: '24px'
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        zIndex: 50,
+                        pointerEvents: 'none',
                     }}
-                />
+                >
+                    <textarea
+                        value={editingText.text}
+                        onChange={(e) => setEditingText({ ...editingText, text: e.target.value })}
+                        onBlur={() => {
+                            // Small delay to prevent race conditions
+                            setTimeout(() => handleTextSave(), 50);
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleTextSave();
+                            }
+                            if (e.key === 'Escape') {
+                                setEditingText(null);
+                            }
+                        }}
+                        autoFocus
+                        placeholder="Type here..."
+                        style={{
+                            position: 'absolute',
+                            top: editingText.y * zoom + stagePos.y,
+                            left: editingText.x * zoom + stagePos.x,
+                            zIndex: 100,
+                            pointerEvents: 'auto',
+                            margin: 0,
+                            padding: '4px 8px',
+                            border: '2px solid #3B82F6',
+                            borderRadius: '4px',
+                            outline: 'none',
+                            background: 'rgba(255,255,255,0.95)',
+                            resize: 'both',
+                            color: strokeColor,
+                            fontSize: `${20 * zoom}px`,
+                            fontFamily: 'sans-serif',
+                            lineHeight: '1.2',
+                            minWidth: '120px',
+                            minHeight: '36px',
+                            boxShadow: '0 2px 12px rgba(59, 130, 246, 0.3)',
+                        }}
+                    />
+                </div>
             )}
-        </>
+        </div>
     );
 };
