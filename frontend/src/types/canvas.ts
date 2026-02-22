@@ -19,6 +19,10 @@ export interface CanvasElement {
   strokeWidth: number;
   fill?: string;
   isDragging?: boolean;
+  rotation?: number;
+  scaleX?: number;
+  scaleY?: number;
+  zIndex: number;
 }
 
 export interface UserCursor {

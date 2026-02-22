@@ -6,7 +6,7 @@ const SOCKET_SERVER_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:
 
 export const useSocket = (roomId: string) => {
     const socketRef = useRef<Socket | null>(null);
-    const { setElements, addElement, updateCursor, removeCursor, removeElement } = useBoardStore();
+    const { setElements, addElement, updateCursor, removeCursor, removeElement, removeElements } = useBoardStore();
 
     useEffect(() => {
         socketRef.current = io(SOCKET_SERVER_URL, {
@@ -32,6 +32,10 @@ export const useSocket = (roomId: string) => {
             removeElement(id);
         });
 
+        socket.on('elements-removed', (ids: string[]) => {
+            removeElements(ids);
+        });
+
         socket.on('board-cleared', () => {
             useBoardStore.getState().clearElements();
         });
@@ -51,7 +55,7 @@ export const useSocket = (roomId: string) => {
         return () => {
             socket.disconnect();
         };
-    }, [roomId, setElements, addElement, updateCursor, removeCursor, removeElement]);
+    }, [roomId, setElements, addElement, updateCursor, removeCursor, removeElement, removeElements]);
 
     const emitDraw = (element: any) => {
         if (socketRef.current) {
@@ -62,6 +66,12 @@ export const useSocket = (roomId: string) => {
     const emitRemoveElement = (id: string) => {
         if (socketRef.current) {
             socketRef.current.emit('remove-element', { roomId, id });
+        }
+    };
+
+    const emitRemoveElements = (ids: string[]) => {
+        if (socketRef.current) {
+            socketRef.current.emit('remove-elements', { roomId, ids });
         }
     };
 
@@ -89,5 +99,5 @@ export const useSocket = (roomId: string) => {
         }
     };
 
-    return { emitDraw, emitRemoveElement, emitClearBoard, emitSyncBoard, emitCursorMove, saveBoard };
+    return { emitDraw, emitRemoveElement, emitRemoveElements, emitClearBoard, emitSyncBoard, emitCursorMove, saveBoard };
 };
