@@ -4,8 +4,8 @@ import { BoardService } from '../services/board.service';
 export class BoardController {
     static async getBoard(req: Request, res: Response) {
         try {
-            const { roomId } = req.params;
-            const board = await BoardService.getBoardState(roomId as string);
+            const roomId = req.params.roomId as string;
+            const board = await BoardService.getBoardState(roomId);
             if (!board) {
                 return res.status(404).json({ error: 'Board not found' });
             }
