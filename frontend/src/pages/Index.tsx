@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { Whiteboard } from '@/components/canvas/Whiteboard';
-import { Toolbar } from '@/components/toolbar/Toolbar';
 import { v4 as uuidv4 } from 'uuid';
 
 // Simple room generation or retrieval for demo purposes
@@ -19,7 +18,6 @@ const Index: React.FC = () => {
 
   return (
     <div className="w-screen h-screen overflow-hidden relative bg-gray-50">
-      <Toolbar />
       <Whiteboard roomId={roomId} />
 
       <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end pointer-events-none">
