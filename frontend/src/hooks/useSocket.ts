@@ -6,7 +6,7 @@ const SOCKET_SERVER_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:
 
 export const useSocket = (roomId: string) => {
     const socketRef = useRef<Socket | null>(null);
-    const { setElements, addElement, updateCursor, removeCursor } = useBoardStore();
+    const { setElements, addElement, updateCursor, removeCursor, removeElement } = useBoardStore();
 
     useEffect(() => {
         socketRef.current = io(SOCKET_SERVER_URL, {
@@ -25,10 +25,19 @@ export const useSocket = (roomId: string) => {
         });
 
         socket.on('draw-update', (element: any) => {
-            // Optimistic update already handles local draw, so we only add foreign elements
-            // For simplicity, we assume 'draw-update' means a new element. If it's an update,
-            // we'd need to check if element exists and update/add accordingly.
             addElement(element);
+        });
+
+        socket.on('element-removed', (id: string) => {
+            removeElement(id);
+        });
+
+        socket.on('board-cleared', () => {
+            useBoardStore.getState().clearElements();
+        });
+
+        socket.on('sync-board', (elements: any[]) => {
+            setElements(elements);
         });
 
         socket.on('cursor-update', (data: { userId: string; cursor: any }) => {
@@ -42,11 +51,29 @@ export const useSocket = (roomId: string) => {
         return () => {
             socket.disconnect();
         };
-    }, [roomId, setElements, addElement, updateCursor, removeCursor]);
+    }, [roomId, setElements, addElement, updateCursor, removeCursor, removeElement]);
 
     const emitDraw = (element: any) => {
         if (socketRef.current) {
             socketRef.current.emit('draw', { roomId, element });
+        }
+    };
+
+    const emitRemoveElement = (id: string) => {
+        if (socketRef.current) {
+            socketRef.current.emit('remove-element', { roomId, id });
+        }
+    };
+
+    const emitClearBoard = () => {
+        if (socketRef.current) {
+            socketRef.current.emit('clear-board', { roomId });
+        }
+    };
+
+    const emitSyncBoard = (elements: any[]) => {
+        if (socketRef.current) {
+            socketRef.current.emit('sync-board', { roomId, elements });
         }
     };
 
@@ -62,5 +89,5 @@ export const useSocket = (roomId: string) => {
         }
     };
 
-    return { emitDraw, emitCursorMove, saveBoard };
+    return { emitDraw, emitRemoveElement, emitClearBoard, emitSyncBoard, emitCursorMove, saveBoard };
 };

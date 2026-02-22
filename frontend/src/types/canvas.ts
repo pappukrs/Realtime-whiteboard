@@ -1,4 +1,4 @@
-export type ToolType = 'select' | 'rectangle' | 'circle' | 'line' | 'pencil' | 'text';
+export type ToolType = 'select' | 'rectangle' | 'circle' | 'line' | 'pencil' | 'text' | 'pan' | 'arrow' | 'eraser';
 
 export interface Point {
   x: number;
