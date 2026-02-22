@@ -32,6 +32,10 @@ export const setupSocket = (io: SocketIOServer, redisPub: Redis, redisSub: Redis
             socket.to(data.roomId).emit('element-removed', data.id);
         });
 
+        socket.on('remove-elements', (data: { roomId: string; ids: string[] }) => {
+            socket.to(data.roomId).emit('elements-removed', data.ids);
+        });
+
         socket.on('clear-board', (data: { roomId: string }) => {
             socket.to(data.roomId).emit('board-cleared');
         });
